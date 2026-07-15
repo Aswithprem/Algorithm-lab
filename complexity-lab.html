@@ -1,0 +1,872 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Algorithm Lab — Time &amp; Space Complexity</title>
+<style>
+:root{
+  --bg:#0B1120;
+  --surface:#111A2E;
+  --surface-2:#16213A;
+  --line:#243154;
+  --text:#E8EDF7;
+  --text-dim:#93A0BE;
+  --accent:#5EEAD4;
+  --accent-dim:#2C7A6E;
+  --warn:#FB923C;
+  --bad:#F87171;
+  --grid:#1B2A4A;
+  --mono: ui-monospace, "SF Mono", Menlo, Consolas, "Courier New", monospace;
+  --serif: Georgia, "Times New Roman", serif;
+  --sans: -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  --radius: 10px;
+}
+[data-theme="light"]{
+  --bg:#F5F3EC;
+  --surface:#FFFFFF;
+  --surface-2:#EFEBE0;
+  --line:#DCD5C2;
+  --text:#1A2033;
+  --text-dim:#5B6479;
+  --accent:#0E7C6B;
+  --accent-dim:#BEEAE2;
+  --warn:#C2660A;
+  --bad:#C0392B;
+  --grid:#E3DDCC;
+}
+*{box-sizing:border-box;}
+html{scroll-behavior:smooth;}
+body{
+  margin:0; background:var(--bg); color:var(--text); font-family:var(--sans);
+  transition:background .3s, color .3s;
+}
+::selection{background:var(--accent); color:#04201C;}
+
+/* ---------- layout ---------- */
+.app{display:flex; min-height:100vh;}
+.sidebar{
+  width:260px; flex:0 0 260px; background:var(--surface); border-right:1px solid var(--line);
+  position:sticky; top:0; height:100vh; overflow-y:auto; padding:20px 14px;
+}
+.brand{font-family:var(--serif); font-size:1.35rem; letter-spacing:.02em; margin:4px 6px 2px;}
+.brand small{display:block; font-family:var(--mono); font-size:.62rem; color:var(--accent); letter-spacing:.14em; text-transform:uppercase; margin-top:4px;}
+.progress-wrap{margin:16px 6px 18px; height:6px; background:var(--grid); border-radius:4px; overflow:hidden;}
+.progress-bar{height:100%; width:0%; background:linear-gradient(90deg,var(--accent),var(--accent-dim)); transition:width .4s;}
+.progress-label{font-family:var(--mono); font-size:.68rem; color:var(--text-dim); margin:0 6px 14px;}
+nav.toc a{
+  display:flex; gap:8px; align-items:baseline; padding:7px 8px; margin:1px 0; border-radius:7px;
+  color:var(--text-dim); text-decoration:none; font-size:.83rem; cursor:pointer;
+  border-left:2px solid transparent;
+}
+nav.toc a .n{font-family:var(--mono); font-size:.68rem; opacity:.6; width:18px; flex:0 0 auto;}
+nav.toc a:hover{background:var(--surface-2); color:var(--text);}
+nav.toc a.active{color:var(--accent); border-left:2px solid var(--accent); background:var(--surface-2);}
+nav.toc a.done .n::after{content:" ✓";}
+.side-controls{display:flex; gap:8px; margin:16px 6px 4px; flex-wrap:wrap;}
+.chip-btn{
+  font-family:var(--mono); font-size:.68rem; border:1px solid var(--line); background:var(--surface-2);
+  color:var(--text); padding:6px 9px; border-radius:20px; cursor:pointer;
+}
+.chip-btn:hover{border-color:var(--accent);}
+.chip-btn.on{background:var(--accent); color:#04201C; border-color:var(--accent);}
+
+main{flex:1; min-width:0; padding:0;}
+.section{padding:56px 6vw 40px; border-bottom:1px solid var(--line); scroll-margin-top:14px; max-width:1180px;}
+.section h2{font-family:var(--serif); font-size:2rem; margin:0 0 6px;}
+.eyebrow{font-family:var(--mono); font-size:.7rem; letter-spacing:.16em; text-transform:uppercase; color:var(--accent); margin:0 0 8px;}
+.lede{color:var(--text-dim); max-width:66ch; line-height:1.6; font-size:.98rem;}
+.card{
+  background:var(--surface); border:1px solid var(--line); border-radius:var(--radius);
+  padding:20px 22px; margin-top:18px;
+}
+.grid2{display:grid; grid-template-columns:1fr 1fr; gap:18px;}
+@media(max-width:880px){.grid2{grid-template-columns:1fr;} .sidebar{display:none;} .app{display:block;}}
+
+button.ctl{
+  font-family:var(--mono); font-size:.75rem; background:var(--surface-2); color:var(--text);
+  border:1px solid var(--line); padding:7px 12px; border-radius:7px; cursor:pointer;
+}
+button.ctl:hover{border-color:var(--accent); color:var(--accent);}
+button.ctl:disabled{opacity:.35; cursor:default;}
+button.ctl.primary{background:var(--accent); color:#04201C; border-color:var(--accent);}
+.controls-row{display:flex; gap:8px; align-items:center; flex-wrap:wrap; margin:14px 0;}
+input[type=range]{accent-color:var(--accent); width:100%;}
+.readout{font-family:var(--mono); font-size:.82rem; color:var(--text-dim);}
+.readout b{color:var(--accent); font-weight:600;}
+.badge{display:inline-block; font-family:var(--mono); font-size:.68rem; padding:3px 8px; border-radius:20px; border:1px solid var(--accent); color:var(--accent);}
+
+/* tooltip term */
+.term{border-bottom:1px dotted var(--accent); cursor:help; position:relative;}
+.term .tip{
+  visibility:hidden; opacity:0; position:absolute; bottom:130%; left:0; width:230px;
+  background:#04101C; color:#E8EDF7; border:1px solid var(--accent); padding:8px 10px; border-radius:7px;
+  font-size:.76rem; line-height:1.4; z-index:20; transition:opacity .15s; font-family:var(--sans);
+}
+.term:hover .tip{visibility:visible; opacity:1;}
+
+/* Module 1: search race */
+.race-list{display:flex; flex-direction:column; gap:10px; margin-top:16px;}
+.race-row{display:grid; grid-template-columns:110px 1fr 90px; align-items:center; gap:10px;}
+.race-row .lbl{font-family:var(--mono); font-size:.78rem; color:var(--text-dim);}
+.race-track{height:16px; background:var(--grid); border-radius:5px; overflow:hidden;}
+.race-fill{height:100%; width:0%; background:linear-gradient(90deg,var(--accent),var(--warn)); transition:width 1.1s cubic-bezier(.2,.8,.2,1);}
+.race-steps{font-family:var(--mono); font-size:.76rem; text-align:right; color:var(--text);}
+
+/* Module: op counter block grid */
+.n-bars{display:flex; align-items:flex-end; gap:6px; height:160px; margin-top:14px; border-bottom:1px solid var(--line); padding-bottom:2px;}
+.n-bar{flex:1; background:linear-gradient(180deg,var(--accent),var(--accent-dim)); border-radius:4px 4px 0 0; min-width:4px; transition:height .35s;}
+
+/* Big-O graph */
+canvas{width:100%; display:block; background:var(--surface-2); border-radius:8px; border:1px solid var(--line);}
+.legend{display:flex; flex-wrap:wrap; gap:10px; margin-top:12px;}
+.legend label{display:flex; gap:6px; align-items:center; font-family:var(--mono); font-size:.72rem; cursor:pointer; padding:4px 8px; border:1px solid var(--line); border-radius:20px; background:var(--surface);}
+.legend .sw{width:10px; height:10px; border-radius:50%;}
+.legend input{accent-color:var(--accent);}
+
+/* complexity cards */
+.cc-grid{display:grid; grid-template-columns:repeat(auto-fit,minmax(210px,1fr)); gap:14px; margin-top:16px;}
+.flip{perspective:1200px; height:190px; cursor:pointer;}
+.flip-inner{position:relative; width:100%; height:100%; transition:transform .5s; transform-style:preserve-3d;}
+.flip.on .flip-inner{transform:rotateY(180deg);}
+.flip-face{position:absolute; inset:0; backface-visibility:hidden; border-radius:var(--radius); border:1px solid var(--line); padding:16px; background:var(--surface);}
+.flip-face.back{transform:rotateY(180deg); background:var(--surface-2); font-size:.78rem; line-height:1.5; overflow:auto;}
+.flip-face .big{font-family:var(--mono); font-size:1.4rem; color:var(--accent);}
+.flip-face .name{color:var(--text-dim); font-size:.78rem; margin-top:4px;}
+.flip-face .hint{position:absolute; bottom:10px; right:12px; font-family:var(--mono); font-size:.62rem; color:var(--text-dim);}
+
+/* array visualizers */
+.arr-row{display:flex; gap:4px; margin-top:16px; flex-wrap:wrap;}
+.cell{
+  width:38px; height:38px; display:flex; align-items:center; justify-content:center;
+  font-family:var(--mono); font-size:.75rem; border-radius:6px; background:var(--surface-2);
+  border:1px solid var(--line); color:var(--text-dim); transition:all .25s;
+}
+.cell.active{background:var(--accent); color:#04201C; border-color:var(--accent); transform:translateY(-4px);}
+.cell.eliminated{opacity:.22;}
+.cell.found{background:var(--warn); color:#241000; border-color:var(--warn);}
+.cell.visited{border-color:var(--accent-dim);}
+
+/* quadratic grid */
+.quad-grid{display:grid; gap:3px; margin-top:16px;}
+.qcell{aspect-ratio:1; background:var(--surface-2); border-radius:3px; border:1px solid var(--line); transition:background .15s;}
+.qcell.hit{background:var(--accent);}
+.qcell.row-active{background:var(--warn);}
+
+/* stack viz */
+.stack-wrap{display:flex; gap:26px; margin-top:16px; align-items:flex-end;}
+.stack-col{display:flex; flex-direction:column-reverse; gap:4px; width:180px; min-height:220px; border:1px dashed var(--line); border-radius:8px; padding:6px; justify-content:flex-start;}
+.frame{background:var(--surface-2); border:1px solid var(--accent-dim); border-radius:6px; padding:8px 10px; font-family:var(--mono); font-size:.74rem; animation:pop .25s ease;}
+@keyframes pop{from{transform:scale(.7); opacity:0;} to{transform:scale(1); opacity:1;}}
+
+/* race bars */
+.race2{display:flex; flex-direction:column; gap:10px; margin-top:18px;}
+.race2-row{display:grid; grid-template-columns:120px 1fr 70px; gap:10px; align-items:center;}
+.race2-track{height:20px; background:var(--grid); border-radius:5px; overflow:hidden; position:relative;}
+.race2-fill{height:100%; width:0%; border-radius:5px; transition:width .5s linear;}
+
+/* quiz */
+.q{margin-top:20px; padding-top:18px; border-top:1px solid var(--line);}
+.q:first-child{border-top:none; padding-top:0;}
+.q p.stem{font-weight:600; margin-bottom:10px;}
+.opt{
+  display:block; width:100%; text-align:left; background:var(--surface-2); border:1px solid var(--line);
+  color:var(--text); padding:9px 12px; border-radius:7px; margin-bottom:7px; cursor:pointer; font-size:.86rem;
+}
+.opt:hover{border-color:var(--accent);}
+.opt.correct{border-color:var(--accent); background:rgba(94,234,212,.12); color:var(--accent);}
+.opt.wrong{border-color:var(--bad); background:rgba(248,113,113,.12); color:var(--bad);}
+.explain{font-size:.8rem; color:var(--text-dim); margin-top:6px; display:none;}
+.explain.show{display:block;}
+.score-pill{font-family:var(--mono); font-size:.75rem; color:var(--accent); border:1px solid var(--accent); border-radius:20px; padding:5px 12px; display:inline-block; margin-bottom:10px;}
+
+footer{padding:30px 6vw 60px; color:var(--text-dim); font-size:.8rem; font-family:var(--mono);}
+table{width:100%; border-collapse:collapse; margin-top:14px; font-size:.83rem;}
+th,td{padding:8px 10px; border-bottom:1px solid var(--line); text-align:left;}
+th{color:var(--text-dim); font-weight:500; font-family:var(--mono); font-size:.72rem; text-transform:uppercase; letter-spacing:.06em;}
+.top-toolbar{position:sticky; top:0; z-index:5; display:flex; justify-content:flex-end; gap:8px; padding:10px 6vw; background:linear-gradient(180deg,var(--bg) 70%, transparent); pointer-events:none;}
+.top-toolbar button{pointer-events:auto;}
+</style>
+</head>
+<body data-theme="dark">
+
+<div class="app">
+  <aside class="sidebar">
+    <div class="brand">Algorithm Lab<small>Time &amp; Space Complexity</small></div>
+    <div class="progress-wrap"><div class="progress-bar" id="progressBar"></div></div>
+    <div class="progress-label" id="progressLabel">0% explored</div>
+    <nav class="toc" id="toc">
+      <a data-target="s1"><span class="n">01</span>Why complexity matters</a>
+      <a data-target="s2"><span class="n">02</span>Input size n</a>
+      <a data-target="s3"><span class="n">03</span>Big-O notation</a>
+      <a data-target="s4"><span class="n">04</span>Common complexities</a>
+      <a data-target="s5"><span class="n">05</span>Binary search — O(log n)</a>
+      <a data-target="s6"><span class="n">06</span>Linear search — O(n)</a>
+      <a data-target="s7"><span class="n">07</span>Nested loops — O(n²)</a>
+      <a data-target="s8"><span class="n">08</span>Recursion &amp; the call stack</a>
+      <a data-target="s9"><span class="n">09</span>Growth race</a>
+      <a data-target="s10"><span class="n">10</span>Quiz</a>
+    </nav>
+    <div class="side-controls">
+      <button class="chip-btn" id="themeToggle">☾ Dark</button>
+      <button class="chip-btn" id="soundToggle">🔊 Sound</button>
+    </div>
+  </aside>
+
+  <main id="main">
+
+    <section class="section" id="s1">
+      <p class="eyebrow">Module 01</p>
+      <h2>Why complexity matters</h2>
+      <p class="lede">An <span class="term">algorithm<span class="tip">A precise, step-by-step procedure for solving a problem or completing a task.</span></span> is just a recipe of steps. Two recipes can reach the same dish — but one might take 3 minutes and the other 3 hours. Complexity analysis is how we predict, before we even run the code, which one that will be.</p>
+
+      <div class="card">
+        <p class="lede" style="margin-top:0">Simulate a <span class="term">linear search<span class="tip">Checking items one at a time, in order, until the target is found.</span></span> for one student's name in a list of different sizes. Press run and watch how the work grows.</p>
+        <div class="controls-row">
+          <button class="ctl primary" id="raceRun">▶ Run search</button>
+          <button class="ctl" id="raceReset">↺ Reset</button>
+        </div>
+        <div class="race-list" id="raceList"></div>
+        <p class="readout" style="margin-top:10px">Same task. Same computer. The <b>only</b> thing that changed is <b>how many students there are</b> — yet the work jumped from a handful of checks to a million. That relationship between input size and work is exactly what complexity analysis measures.</p>
+      </div>
+    </section>
+
+    <section class="section" id="s2">
+      <p class="eyebrow">Module 02</p>
+      <h2>Input size, <span style="font-family:var(--mono)">n</span></h2>
+      <p class="lede">We call the size of the input <span class="term">n<span class="tip">The variable that represents how many elements the algorithm has to work with — e.g. the length of an array.</span></span>. Every complexity class describes how the number of operations changes as <span style="font-family:var(--mono)">n</span> changes. Drag the slider and watch four different algorithms react very differently to the same growth in <span style="font-family:var(--mono)">n</span>.</p>
+      <div class="card">
+        <div class="controls-row">
+          <input type="range" id="nSlider" min="1" max="200" value="10">
+        </div>
+        <p class="readout">n = <b id="nVal">10</b></p>
+        <div class="n-bars" id="nBars"></div>
+        <div class="legend" id="nLegend" style="margin-top:10px;"></div>
+      </div>
+    </section>
+
+    <section class="section" id="s3">
+      <p class="eyebrow">Module 03 · 05</p>
+      <h2>Big-O notation</h2>
+      <p class="lede"><span class="term">Big-O<span class="tip">A notation describing the upper bound / worst-case growth rate of an algorithm as input size grows, ignoring constants.</span></span> describes the <b>worst-case</b> growth rate of an algorithm, ignoring constants and lower-order terms — because what matters at scale is the <em>shape</em> of the curve, not small fixed costs. Toggle curves on and off, then drag <span style="font-family:var(--mono)">n</span> to watch them separate.</p>
+      <div class="card">
+        <canvas id="bigOChart" height="360"></canvas>
+        <div class="legend" id="bigOLegend"></div>
+        <div class="controls-row">
+          <input type="range" id="bigOSlider" min="1" max="60" value="60" style="flex:1">
+        </div>
+        <p class="readout">n = <b id="bigOnVal">60</b> — at this size, <span id="bigOWinner"></span></p>
+      </div>
+    </section>
+
+    <section class="section" id="s4">
+      <p class="eyebrow">Module 08</p>
+      <h2>Common time complexities</h2>
+      <p class="lede">Click a card to flip it over. These eight classes cover almost every algorithm you'll meet in this course, ranked from fastest to slowest growth.</p>
+      <div class="cc-grid" id="ccGrid"></div>
+    </section>
+
+    <section class="section" id="s5">
+      <p class="eyebrow">Module 10</p>
+      <h2>Binary search — <span style="font-family:var(--mono)">O(log n)</span></h2>
+      <p class="lede">Binary search only works on a <b>sorted</b> array. Each step throws away half of the remaining possibilities — so the work needed grows only <span class="term">logarithmically<span class="tip">Each additional element roughly doubles what a logarithmic algorithm can handle in the same number of steps — the opposite of exponential growth.</span></span> with n.</p>
+      <div class="card">
+        <div class="controls-row">
+          <label class="readout">Target: <input type="number" id="bsTarget" value="45" style="width:70px; font-family:var(--mono); background:var(--surface-2); color:var(--text); border:1px solid var(--line); border-radius:5px; padding:3px 6px;"></label>
+          <button class="ctl primary" id="bsStart">↺ New search</button>
+          <button class="ctl" id="bsPrev">⏮ Prev</button>
+          <button class="ctl" id="bsNext">Next ⏭</button>
+          <button class="ctl" id="bsPlay">▶ Auto</button>
+        </div>
+        <div class="arr-row" id="bsArr"></div>
+        <p class="readout" id="bsStatus" style="margin-top:10px"></p>
+      </div>
+    </section>
+
+    <section class="section" id="s6">
+      <p class="eyebrow">Module 11</p>
+      <h2>Linear search — <span style="font-family:var(--mono)">O(n)</span></h2>
+      <p class="lede">No shortcuts here — in the worst case, every single element must be checked once. Work grows in direct proportion to n.</p>
+      <div class="card">
+        <div class="controls-row">
+          <label class="readout">Target: <input type="number" id="lsTarget" value="45" style="width:70px; font-family:var(--mono); background:var(--surface-2); color:var(--text); border:1px solid var(--line); border-radius:5px; padding:3px 6px;"></label>
+          <button class="ctl primary" id="lsStart">↺ New search</button>
+          <button class="ctl" id="lsPrev">⏮ Prev</button>
+          <button class="ctl" id="lsNext">Next ⏭</button>
+          <button class="ctl" id="lsPlay">▶ Auto</button>
+        </div>
+        <div class="arr-row" id="lsArr"></div>
+        <p class="readout" id="lsStatus" style="margin-top:10px"></p>
+      </div>
+    </section>
+
+    <section class="section" id="s7">
+      <p class="eyebrow">Module 13</p>
+      <h2>Nested loops — <span style="font-family:var(--mono)">O(n²)</span></h2>
+      <p class="lede">A loop inside a loop means the inner loop runs completely, <em>once for every</em> iteration of the outer loop. Drag n and watch the operation count explode quadratically, not linearly.</p>
+      <div class="card">
+        <div class="controls-row">
+          <input type="range" id="quadSlider" min="2" max="20" value="6" style="flex:1">
+          <button class="ctl primary" id="quadPlay">▶ Animate</button>
+        </div>
+        <p class="readout">n = <b id="quadN">6</b> → <b id="quadOps">36</b> operations (n × n)</p>
+        <div class="quad-grid" id="quadGrid"></div>
+      </div>
+    </section>
+
+    <section class="section" id="s8">
+      <p class="eyebrow">Module 21</p>
+      <h2>Recursion &amp; the call stack — space complexity</h2>
+      <p class="lede">Every recursive call is <span class="term">pushed<span class="tip">Adding a new frame onto the call stack when a function is called.</span></span> onto the call stack and stays there, using memory, until it returns and is <span class="term">popped<span class="tip">Removing a frame from the call stack when a function finishes and returns.</span></span> off. A recursive factorial of n needs n stack frames alive at once — that's <span style="font-family:var(--mono)">O(n)</span> extra space, not <span style="font-family:var(--mono)">O(1)</span>.</p>
+      <div class="card">
+        <div class="controls-row">
+          <input type="range" id="stackSlider" min="1" max="8" value="5" style="flex:1">
+          <button class="ctl primary" id="stackPlay">▶ Call factorial(n)</button>
+        </div>
+        <p class="readout">n = <b id="stackN">5</b> — peak memory used: <b id="stackPeak">0</b> stack frames</p>
+        <div class="stack-wrap">
+          <div class="stack-col" id="stackCol"></div>
+          <div style="flex:1">
+            <p class="readout" id="stackLog">Press "Call factorial(n)" to watch the stack grow, then shrink.</p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="section" id="s9">
+      <p class="eyebrow">Module 27</p>
+      <h2>Growth race</h2>
+      <p class="lede">Same finish line, wildly different pace. Drag n and watch how far each complexity class "travels" in operations — bars are capped and labelled once they run off the scale.</p>
+      <div class="card">
+        <div class="controls-row">
+          <input type="range" id="raceSlider" min="1" max="30" value="8" style="flex:1">
+        </div>
+        <p class="readout">n = <b id="raceNVal">8</b></p>
+        <div class="race2" id="race2"></div>
+      </div>
+    </section>
+
+    <section class="section" id="s10">
+      <p class="eyebrow">Module 29 · 30</p>
+      <h2>Quiz</h2>
+      <p class="lede">Five quick checks. Pick an answer to reveal the explanation immediately.</p>
+      <div class="card">
+        <span class="score-pill" id="scorePill">Score: 0 / 5</span>
+        <div id="quizWrap"></div>
+      </div>
+    </section>
+
+    <footer>
+      Algorithm Lab — a self-contained lesson on time &amp; space complexity. Everything on this page runs entirely in your browser.
+    </footer>
+  </main>
+</div>
+
+<script>
+(function(){
+"use strict";
+
+/* ---------------- theme ---------------- */
+var themeBtn = document.getElementById('themeToggle');
+themeBtn.addEventListener('click', function(){
+  var body = document.body;
+  var light = body.getAttribute('data-theme') === 'light';
+  body.setAttribute('data-theme', light ? 'dark' : 'light');
+  themeBtn.textContent = light ? '☾ Dark' : '☀ Light';
+});
+
+/* ---------------- sound ---------------- */
+var soundOn = false;
+var soundBtn = document.getElementById('soundToggle');
+var audioCtx = null;
+soundBtn.addEventListener('click', function(){
+  soundOn = !soundOn;
+  soundBtn.classList.toggle('on', soundOn);
+  soundBtn.textContent = soundOn ? '🔊 Sound on' : '🔈 Sound off';
+});
+function beep(freq, dur){
+  if(!soundOn) return;
+  try{
+    if(!audioCtx) audioCtx = new (window.AudioContext||window.webkitAudioContext)();
+    var o = audioCtx.createOscillator(), g = audioCtx.createGain();
+    o.frequency.value = freq || 440;
+    o.type = 'sine';
+    g.gain.value = 0.05;
+    o.connect(g); g.connect(audioCtx.destination);
+    o.start();
+    g.gain.exponentialRampToValueAtTime(0.0001, audioCtx.currentTime + (dur||0.15));
+    o.stop(audioCtx.currentTime + (dur||0.15));
+  }catch(e){}
+}
+
+/* ---------------- nav + progress ---------------- */
+var sections = Array.prototype.slice.call(document.querySelectorAll('.section'));
+var tocLinks = Array.prototype.slice.call(document.querySelectorAll('nav.toc a'));
+var visited = {};
+tocLinks.forEach(function(a){
+  a.addEventListener('click', function(){
+    document.getElementById(a.dataset.target).scrollIntoView({behavior:'smooth'});
+  });
+});
+function updateProgress(){
+  var count = Object.keys(visited).length;
+  var pct = Math.round(count/sections.length*100);
+  document.getElementById('progressBar').style.width = pct+'%';
+  document.getElementById('progressLabel').textContent = pct+'% explored ('+count+'/'+sections.length+')';
+}
+var io = new IntersectionObserver(function(entries){
+  entries.forEach(function(e){
+    var link = tocLinks.filter(function(a){return a.dataset.target===e.target.id;})[0];
+    if(e.isIntersecting){
+      tocLinks.forEach(function(a){a.classList.remove('active');});
+      if(link) link.classList.add('active');
+      if(!visited[e.target.id]){
+        visited[e.target.id]=true;
+        if(link) link.classList.add('done');
+        updateProgress();
+      }
+    }
+  });
+},{threshold:0.4});
+sections.forEach(function(s){io.observe(s);});
+
+/* ================= MODULE 1: search race ================= */
+var raceSizes = [
+  {label:'10 students', n:10},
+  {label:'100 students', n:100},
+  {label:'1,000 students', n:1000},
+  {label:'1,000,000 students', n:1000000}
+];
+var raceListEl = document.getElementById('raceList');
+raceSizes.forEach(function(r, i){
+  var row = document.createElement('div');
+  row.className='race-row';
+  row.innerHTML = '<span class="lbl">'+r.label+'</span>'+
+    '<div class="race-track"><div class="race-fill" id="raceFill'+i+'"></div></div>'+
+    '<span class="race-steps" id="raceSteps'+i+'">0 checks</span>';
+  raceListEl.appendChild(row);
+});
+var maxLog = Math.log(1000000);
+function runRace(){
+  raceSizes.forEach(function(r, i){
+    var steps = Math.floor(Math.random()*r.n)+1; // simulated worst-ish case position
+    var widthPct = Math.min(100, (Math.log(steps)/maxLog)*100);
+    setTimeout(function(){
+      document.getElementById('raceFill'+i).style.width = widthPct+'%';
+      document.getElementById('raceSteps'+i).textContent = steps.toLocaleString()+' checks';
+      beep(300+i*120,0.08);
+    }, i*180);
+  });
+}
+function resetRace(){
+  raceSizes.forEach(function(r,i){
+    document.getElementById('raceFill'+i).style.width='0%';
+    document.getElementById('raceSteps'+i).textContent='0 checks';
+  });
+}
+document.getElementById('raceRun').addEventListener('click', runRace);
+document.getElementById('raceReset').addEventListener('click', resetRace);
+
+/* ================= MODULE 2: input size n ================= */
+var nFns = [
+  {name:'O(1)', fn:function(n){return 1;}, color:'#5EEAD4'},
+  {name:'O(log n)', fn:function(n){return Math.log2(n);}, color:'#38BDF8'},
+  {name:'O(n)', fn:function(n){return n;}, color:'#FBBF24'},
+  {name:'O(n²)', fn:function(n){return n*n;}, color:'#F87171'}
+];
+var nLegend = document.getElementById('nLegend');
+nFns.forEach(function(f){
+  var s = document.createElement('span');
+  s.className='badge'; s.style.borderColor=f.color; s.style.color=f.color;
+  s.textContent=f.name;
+  nLegend.appendChild(s);
+});
+var nBarsEl = document.getElementById('nBars');
+nFns.forEach(function(f,i){
+  var b = document.createElement('div');
+  b.className='n-bar'; b.id='nbar'+i; b.style.background=f.color;
+  nBarsEl.appendChild(b);
+});
+function renderN(n){
+  document.getElementById('nVal').textContent = n;
+  var maxOps = 200*200;
+  nFns.forEach(function(f,i){
+    var v = f.fn(n);
+    var pct = Math.min(100, (v/maxOps)*100*30); // visual scaling so small values still show
+    pct = Math.max(2, Math.min(100, (Math.log(v+1)/Math.log(maxOps))*100));
+    document.getElementById('nbar'+i).style.height = pct+'%';
+    document.getElementById('nbar'+i).title = f.name+': '+Math.round(v)+' ops';
+  });
+}
+document.getElementById('nSlider').addEventListener('input', function(e){
+  renderN(+e.target.value);
+});
+renderN(10);
+
+/* ================= MODULE 3: Big-O chart ================= */
+var curves = [
+  {key:'o1', name:'O(1)', color:'#94A3B8', fn:function(n){return 1;}, on:true},
+  {key:'olog', name:'O(log n)', color:'#38BDF8', fn:function(n){return Math.log2(n+1);}, on:true},
+  {key:'on', name:'O(n)', color:'#5EEAD4', fn:function(n){return n;}, on:true},
+  {key:'onlog', name:'O(n log n)', color:'#A3E635', fn:function(n){return n*Math.log2(n+1);}, on:true},
+  {key:'on2', name:'O(n²)', color:'#FBBF24', fn:function(n){return n*n;}, on:true},
+  {key:'on3', name:'O(n³)', color:'#FB923C', fn:function(n){return n*n*n;}, on:false},
+  {key:'o2n', name:'O(2ⁿ)', color:'#F87171', fn:function(n){return Math.pow(2,n);}, on:false},
+  {key:'ofact', name:'O(n!)', color:'#F472B6', fn:function(n){var r=1;for(var i=2;i<=n;i++)r*=i;return r;}, on:false}
+];
+var bigOLegend = document.getElementById('bigOLegend');
+curves.forEach(function(c){
+  var lab = document.createElement('label');
+  lab.innerHTML = '<input type="checkbox" '+(c.on?'checked':'')+' data-key="'+c.key+'"><span class="sw" style="background:'+c.color+'"></span>'+c.name;
+  bigOLegend.appendChild(lab);
+  lab.querySelector('input').addEventListener('change', function(e){
+    c.on = e.target.checked;
+    drawBigO();
+  });
+});
+var canvas = document.getElementById('bigOChart');
+var ctx = canvas.getContext('2d');
+function fitCanvas(){
+  var ratio = window.devicePixelRatio || 1;
+  var w = canvas.clientWidth;
+  canvas.width = w*ratio; canvas.height = 360*ratio;
+  ctx.setTransform(ratio,0,0,ratio,0,0);
+}
+function drawBigO(){
+  fitCanvas();
+  var w = canvas.clientWidth, h = 360;
+  var pad = {l:44,r:14,t:14,b:30};
+  ctx.clearRect(0,0,w,h);
+  var nMax = +document.getElementById('bigOSlider').value;
+  document.getElementById('bigOnVal').textContent = nMax;
+  var maxVal = 1;
+  curves.forEach(function(c){ if(c.on) maxVal = Math.max(maxVal, c.fn(nMax)); });
+  // grid
+  ctx.strokeStyle = getComputedStyle(document.body).getPropertyValue('--grid');
+  ctx.lineWidth = 1;
+  for(var i=0;i<=4;i++){
+    var y = pad.t + (h-pad.t-pad.b)*i/4;
+    ctx.beginPath(); ctx.moveTo(pad.l,y); ctx.lineTo(w-pad.r,y); ctx.stroke();
+  }
+  ctx.fillStyle = getComputedStyle(document.body).getPropertyValue('--text-dim');
+  ctx.font = '10px monospace';
+  for(var i2=0;i2<=4;i2++){
+    var val = Math.round(maxVal*(1-i2/4));
+    var y2 = pad.t + (h-pad.t-pad.b)*i2/4;
+    ctx.fillText(val>=1000?(val/1000).toFixed(1)+'k':val, 2, y2+3);
+  }
+  var winner = null, winnerVal = -1;
+  curves.forEach(function(c){
+    if(!c.on) return;
+    ctx.beginPath();
+    ctx.strokeStyle = c.color; ctx.lineWidth = 2.4;
+    for(var n=1;n<=nMax;n++){
+      var val = c.fn(n);
+      var x = pad.l + (w-pad.l-pad.r)*(n-1)/(Math.max(1,nMax-1));
+      var y = pad.t + (h-pad.t-pad.b)*(1 - Math.min(1,val/maxVal));
+      if(n===1) ctx.moveTo(x,y); else ctx.lineTo(x,y);
+    }
+    ctx.stroke();
+    var endVal = c.fn(nMax);
+    if(endVal > winnerVal){ winnerVal = endVal; winner = c.name; }
+    // label at end
+    var xEnd = w-pad.r;
+    var yEnd = pad.t + (h-pad.t-pad.b)*(1 - Math.min(1,endVal/maxVal));
+    ctx.fillStyle = c.color;
+    ctx.fillText(c.name, Math.min(xEnd-46, w-50), Math.max(pad.t+8, Math.min(yEnd, h-pad.b)));
+  });
+  document.getElementById('bigOWinner').innerHTML = winner ? ('<b style="color:var(--accent)">'+winner+'</b> is doing the most work.') : '';
+}
+document.getElementById('bigOSlider').addEventListener('input', drawBigO);
+window.addEventListener('resize', drawBigO);
+setTimeout(drawBigO, 50);
+
+/* ================= MODULE 4: complexity cards ================= */
+var ccData = [
+  {big:'O(1)', name:'Constant Time', ex:'Array index access, hash table lookup.', pros:'Speed never changes, no matter the input size.', cons:'Rare in practice — most real work depends on n.', app:'Direct memory access, hashing.'},
+  {big:'O(log n)', name:'Logarithmic Time', ex:'Binary search, balanced tree lookup.', pros:'Scales beautifully — doubling n barely adds work.', cons:'Requires sorted/structured data.', app:'Search trees, binary search.'},
+  {big:'O(n)', name:'Linear Time', ex:'Linear search, single pass over an array.', pros:'Simple, predictable, touches each item once.', cons:'Gets slow on huge inputs.', app:'Scans, simple aggregations.'},
+  {big:'O(n log n)', name:'Linearithmic Time', ex:'Merge sort, quicksort (average case).', pros:'Best practical complexity for comparison sorting.', cons:'Still noticeably slower than linear at scale.', app:'Efficient sorting algorithms.'},
+  {big:'O(n²)', name:'Quadratic Time', ex:'Nested loops, bubble sort, selection sort.', pros:'Easy to write and reason about.', cons:'Explodes fast — 10x input = 100x work.', app:'Simple sorts, brute-force comparisons.'},
+  {big:'O(n³)', name:'Cubic Time', ex:'Triple nested loops, naive matrix multiply.', pros:'Still polynomial — technically "tractable".', cons:'Very slow beyond small n.', app:'Naive dense-matrix algorithms.'},
+  {big:'O(2ⁿ)', name:'Exponential Time', ex:'Naive recursive Fibonacci, subset generation.', pros:'Guarantees an exhaustive, exact answer.', cons:'Impractical past n≈30-40.', app:'Brute-force combinatorics.'},
+  {big:'O(n!)', name:'Factorial Time', ex:'Generating all permutations, brute-force TSP.', pros:'Explores literally everything.', cons:'Unusable beyond tiny n (n=12 ≈ 479 million).', app:'Exhaustive permutation search.'}
+];
+var ccGrid = document.getElementById('ccGrid');
+ccData.forEach(function(c){
+  var d = document.createElement('div');
+  d.className='flip';
+  d.innerHTML = '<div class="flip-inner">'+
+    '<div class="flip-face front"><div class="big">'+c.big+'</div><div class="name">'+c.name+'</div><div class="hint">tap to flip ↻</div></div>'+
+    '<div class="flip-face back"><b>'+c.name+'</b><br><br>Example: '+c.ex+'<br><br>+ '+c.pros+'<br>− '+c.cons+'<br><br>Used in: '+c.app+'</div>'+
+  '</div>';
+  d.addEventListener('click', function(){ d.classList.toggle('on'); beep(500,0.06); });
+  ccGrid.appendChild(d);
+});
+
+/* ================= shared: sorted array data ================= */
+function makeSortedArray(len){
+  var arr=[]; var v=1;
+  for(var i=0;i<len;i++){ v += Math.floor(Math.random()*6)+1; arr.push(v); }
+  return arr;
+}
+
+/* ================= MODULE 5: binary search ================= */
+(function(){
+  var arr = makeSortedArray(20);
+  var arrEl = document.getElementById('bsArr');
+  var steps = [], stepIdx = -1, playTimer = null;
+  function render(){
+    arrEl.innerHTML='';
+    arr.forEach(function(v,i){ var c=document.createElement('div'); c.className='cell'; c.textContent=v; c.id='bsc'+i; arrEl.appendChild(c); });
+  }
+  render();
+  function buildSteps(target){
+    steps = []; var lo=0, hi=arr.length-1;
+    while(lo<=hi){
+      var mid = Math.floor((lo+hi)/2);
+      steps.push({lo:lo,hi:hi,mid:mid,val:arr[mid],found: arr[mid]===target});
+      if(arr[mid]===target) break;
+      if(arr[mid] < target) lo = mid+1; else hi = mid-1;
+    }
+  }
+  function showStep(i){
+    if(i<0 || i>=steps.length) return;
+    stepIdx = i;
+    var s = steps[i];
+    for(var k=0;k<arr.length;k++){
+      var el = document.getElementById('bsc'+k);
+      el.className = 'cell';
+      if(k<s.lo || k>s.hi) el.classList.add('eliminated');
+      else el.classList.add('visited');
+      if(k===s.mid) el.classList.add(s.found?'found':'active');
+    }
+    var status = s.found ? ('Found '+s.val+' at index '+s.mid+'! Total steps: '+(i+1)+' → O(log n) ≈ log2('+arr.length+') ≈ '+Math.ceil(Math.log2(arr.length))+' max steps.')
+      : ('Step '+(i+1)+': checking middle of range ['+s.lo+'..'+s.hi+'] → index '+s.mid+' = '+s.val+ (s.val<+document.getElementById('bsTarget').value ? ' — too low, search right half' : ' — too high, search left half'));
+    document.getElementById('bsStatus').innerHTML = status;
+    beep(s.found?700:400,0.09);
+  }
+  function start(){
+    var target = +document.getElementById('bsTarget').value;
+    buildSteps(target);
+    showStep(0);
+  }
+  document.getElementById('bsStart').addEventListener('click', function(){
+    arr = makeSortedArray(20); render(); start();
+  });
+  document.getElementById('bsNext').addEventListener('click', function(){ showStep(Math.min(stepIdx+1, steps.length-1)); });
+  document.getElementById('bsPrev').addEventListener('click', function(){ showStep(Math.max(stepIdx-1, 0)); });
+  document.getElementById('bsPlay').addEventListener('click', function(){
+    if(playTimer){ clearInterval(playTimer); playTimer=null; this.textContent='▶ Auto'; return; }
+    this.textContent='⏸ Stop';
+    var self = this;
+    playTimer = setInterval(function(){
+      if(stepIdx>=steps.length-1){ clearInterval(playTimer); playTimer=null; self.textContent='▶ Auto'; return; }
+      showStep(stepIdx+1);
+    }, 800);
+  });
+  start();
+})();
+
+/* ================= MODULE 6: linear search ================= */
+(function(){
+  var arr = makeSortedArray(20);
+  var arrEl = document.getElementById('lsArr');
+  var idx=-1, playTimer=null;
+  function render(){
+    arrEl.innerHTML='';
+    arr.forEach(function(v,i){ var c=document.createElement('div'); c.className='cell'; c.textContent=v; c.id='lsc'+i; arrEl.appendChild(c); });
+  }
+  render();
+  function showIdx(i, target){
+    idx=i;
+    for(var k=0;k<arr.length;k++){
+      var el = document.getElementById('lsc'+k);
+      el.className='cell';
+      if(k<i) el.classList.add('visited');
+    }
+    if(i>=arr.length){
+      document.getElementById('lsStatus').textContent = 'Not found after checking all '+arr.length+' elements → O(n) worst case.';
+      return;
+    }
+    var el2 = document.getElementById('lsc'+i);
+    var found = arr[i]===target;
+    el2.classList.add(found?'found':'active');
+    document.getElementById('lsStatus').textContent = found
+      ? ('Found '+target+' at index '+i+' after '+(i+1)+' check(s).')
+      : ('Checking index '+i+' = '+arr[i]+' — not a match, moving to next.');
+    beep(found?700:350,0.07);
+  }
+  function start(){ showIdx(0, +document.getElementById('lsTarget').value); }
+  document.getElementById('lsStart').addEventListener('click', function(){ arr=makeSortedArray(20); render(); start(); });
+  document.getElementById('lsNext').addEventListener('click', function(){
+    var target = +document.getElementById('lsTarget').value;
+    if(idx<arr.length && arr[idx]===target) return;
+    showIdx(Math.min(idx+1, arr.length), target);
+  });
+  document.getElementById('lsPrev').addEventListener('click', function(){
+    showIdx(Math.max(idx-1,0), +document.getElementById('lsTarget').value);
+  });
+  document.getElementById('lsPlay').addEventListener('click', function(){
+    if(playTimer){ clearInterval(playTimer); playTimer=null; this.textContent='▶ Auto'; return; }
+    this.textContent='⏸ Stop';
+    var self = this;
+    var target = +document.getElementById('lsTarget').value;
+    playTimer = setInterval(function(){
+      if(idx>=arr.length || arr[idx]===target){ clearInterval(playTimer); playTimer=null; self.textContent='▶ Auto'; return; }
+      showIdx(idx+1, target);
+    }, 350);
+  });
+  start();
+})();
+
+/* ================= MODULE 7: nested loops O(n^2) ================= */
+(function(){
+  var grid = document.getElementById('quadGrid');
+  var slider = document.getElementById('quadSlider');
+  var playBtn = document.getElementById('quadPlay');
+  var timer = null;
+  function build(n){
+    grid.innerHTML='';
+    grid.style.gridTemplateColumns = 'repeat('+n+', 1fr)';
+    for(var i=0;i<n*n;i++){
+      var c = document.createElement('div'); c.className='qcell'; c.id='q'+i;
+      grid.appendChild(c);
+    }
+    document.getElementById('quadN').textContent = n;
+    document.getElementById('quadOps').textContent = n*n;
+  }
+  function animate(n){
+    var i=0, total=n*n;
+    if(timer) clearInterval(timer);
+    for(var k=0;k<total;k++) document.getElementById('q'+k).className='qcell';
+    timer = setInterval(function(){
+      if(i>=total){ clearInterval(timer); timer=null; return; }
+      document.getElementById('q'+i).classList.add('hit');
+      beep(260+ (i%n)*10, 0.02);
+      i++;
+    }, Math.max(8, 400/total*10));
+  }
+  slider.addEventListener('input', function(){ build(+slider.value); });
+  playBtn.addEventListener('click', function(){ animate(+slider.value); });
+  build(6);
+})();
+
+/* ================= MODULE 8: recursion / call stack ================= */
+(function(){
+  var slider = document.getElementById('stackSlider');
+  var col = document.getElementById('stackCol');
+  var log = document.getElementById('stackLog');
+  var peakEl = document.getElementById('stackPeak');
+  slider.addEventListener('input', function(){ document.getElementById('stackN').textContent = slider.value; });
+  document.getElementById('stackPlay').addEventListener('click', function(){
+    var n = +slider.value;
+    document.getElementById('stackN').textContent = n;
+    col.innerHTML=''; var peak=0; var logs=[];
+    var seq = [];
+    for(var i=n;i>=1;i--) seq.push({type:'push', depth:i});
+    for(var j=1;j<=n;j++) seq.push({type:'pop', depth:j});
+    var idx=0;
+    var timer = setInterval(function(){
+      if(idx>=seq.length){ clearInterval(timer); log.textContent = 'Done. Peak memory used: '+peak+' stack frames simultaneously (O(n) space).'; return; }
+      var step = seq[idx];
+      if(step.type==='push'){
+        var f = document.createElement('div'); f.className='frame'; f.id='frame'+step.depth;
+        f.textContent = 'factorial('+step.depth+')';
+        col.appendChild(f);
+        peak = Math.max(peak, col.children.length);
+        peakEl.textContent = peak;
+        log.textContent = 'Calling factorial('+step.depth+') → pushed onto stack. Frames alive: '+col.children.length;
+        beep(300+step.depth*20,0.05);
+      } else {
+        var el = document.getElementById('frame'+step.depth);
+        if(el) el.remove();
+        log.textContent = 'factorial('+step.depth+') returns → popped off stack. Frames alive: '+col.children.length;
+        beep(200,0.05);
+      }
+      idx++;
+    }, 500);
+  });
+})();
+
+/* ================= MODULE 9: growth race bars ================= */
+(function(){
+  var raceCurves = [
+    {name:'O(1)', color:'#5EEAD4', fn:function(n){return 1;}},
+    {name:'O(log n)', color:'#38BDF8', fn:function(n){return Math.log2(n+1);}},
+    {name:'O(n)', color:'#A3E635', fn:function(n){return n;}},
+    {name:'O(n log n)', color:'#FBBF24', fn:function(n){return n*Math.log2(n+1);}},
+    {name:'O(n²)', color:'#FB923C', fn:function(n){return n*n;}},
+    {name:'O(2ⁿ)', color:'#F87171', fn:function(n){return Math.pow(2,n);}}
+  ];
+  var wrap = document.getElementById('race2');
+  raceCurves.forEach(function(c,i){
+    var row = document.createElement('div'); row.className='race2-row';
+    row.innerHTML = '<span class="lbl" style="color:'+c.color+'; font-family:var(--mono); font-size:.78rem">'+c.name+'</span>'+
+      '<div class="race2-track"><div class="race2-fill" id="r2f'+i+'" style="background:'+c.color+'"></div></div>'+
+      '<span class="race-steps" id="r2s'+i+'">0</span>';
+    wrap.appendChild(row);
+  });
+  function render(n){
+    document.getElementById('raceNVal').textContent = n;
+    var maxVal = Math.max.apply(null, raceCurves.map(function(c){return c.fn(n);}));
+    raceCurves.forEach(function(c,i){
+      var v = c.fn(n);
+      var pct = Math.max(2, (Math.log(v+1)/Math.log(maxVal+1))*100);
+      document.getElementById('r2f'+i).style.width = pct+'%';
+      document.getElementById('r2s'+i).textContent = v>1e6 ? v.toExponential(1) : Math.round(v).toLocaleString();
+    });
+  }
+  document.getElementById('raceSlider').addEventListener('input', function(e){ render(+e.target.value); });
+  render(8);
+})();
+
+/* ================= MODULE 10: quiz ================= */
+var quiz = [
+  {q:'An algorithm checks every element of an unsorted list once to find a target. What is its time complexity?',
+   opts:['O(1)','O(log n)','O(n)','O(n²)'], correct:2,
+   ex:'Every element is visited exactly once in the worst case, so the work grows linearly with n — O(n).'},
+  {q:'Binary search repeatedly halves the search space. What is its time complexity?',
+   opts:['O(n)','O(log n)','O(n log n)','O(1)'], correct:1,
+   ex:'Each step eliminates half of what remains, so the number of steps grows logarithmically — O(log n).'},
+  {q:'A function has two nested loops, each running n times. What is the time complexity?',
+   opts:['O(n)','O(2n)','O(n²)','O(n log n)'], correct:2,
+   ex:'The inner loop runs n times for every one of the n outer iterations: n × n = n² operations.'},
+  {q:'A recursive function calls itself n times before returning, with no other data structures. What is its space complexity?',
+   opts:['O(1)','O(n)','O(n²)','O(log n)'], correct:1,
+   ex:'Each call adds one frame to the call stack, and all n frames exist simultaneously at the deepest point — O(n) space.'},
+  {q:'Which of these grows the fastest as n increases?',
+   opts:['O(n log n)','O(n²)','O(2ⁿ)','O(log n)'], correct:2,
+   ex:'Exponential growth O(2ⁿ) outpaces every polynomial complexity (n², n log n) once n is large enough.'}
+];
+var score = 0;
+var quizWrap = document.getElementById('quizWrap');
+quiz.forEach(function(item, qi){
+  var qDiv = document.createElement('div'); qDiv.className='q';
+  var stem = document.createElement('p'); stem.className='stem'; stem.textContent=(qi+1)+'. '+item.q;
+  qDiv.appendChild(stem);
+  var explain = document.createElement('div'); explain.className='explain';
+  item.opts.forEach(function(opt, oi){
+    var b = document.createElement('button'); b.className='opt'; b.textContent=opt;
+    b.addEventListener('click', function(){
+      if(qDiv.dataset.answered) return;
+      qDiv.dataset.answered = '1';
+      Array.prototype.slice.call(qDiv.querySelectorAll('.opt')).forEach(function(ob,oi2){
+        if(oi2===item.correct) ob.classList.add('correct');
+      });
+      if(oi!==item.correct) b.classList.add('wrong'); else { score++; beep(700,0.12); }
+      if(oi!==item.correct) beep(220,0.15);
+      explain.textContent = item.ex;
+      explain.classList.add('show');
+      document.getElementById('scorePill').textContent = 'Score: '+score+' / '+quiz.length;
+    });
+    qDiv.appendChild(b);
+  });
+  qDiv.appendChild(explain);
+  quizWrap.appendChild(qDiv);
+});
+
+})();
+</script>
+</body>
+</html>
